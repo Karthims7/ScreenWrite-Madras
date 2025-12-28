@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react'
 import ScreenplayEditor from './components/ScreenplayEditor'
+import LoadingSpinner from './components/LoadingSpinner'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import { screenplayService } from './lib/api'
 import './App.css'
@@ -439,11 +440,15 @@ function App() {
         {/* Main Content Area - 40% (A4-like sheet) */}
         <main className="main-content">
           <div className="editor-container">
-            <ScreenplayEditor
-              ref={editorRef}
-              initialValue={initialContent}
-              onTitleChange={setCurrentDocument}
-            />
+            {isLoading ? (
+              <LoadingSpinner size="large" message="Loading screenplay..." />
+            ) : (
+              <ScreenplayEditor
+                ref={editorRef}
+                initialValue={initialContent}
+                onTitleChange={setCurrentDocument}
+              />
+            )}
           </div>
         </main>
 
@@ -453,11 +458,32 @@ function App() {
             <h3>Quick Actions</h3>
             <div className="action-buttons">
               <button onClick={handleNewDocument} className="sidebar-btn">New Document</button>
-              <button onClick={handleSave} className="sidebar-btn primary">Save</button>
+              <button onClick={handleSave} disabled={isSaving} className="sidebar-btn primary">
+                {isSaving ? 'Saving...' : 'Save'}
+              </button>
               <button onClick={() => setShowTitlePage(!showTitlePage)} className="sidebar-btn">
                 {showTitlePage ? 'Hide Title Page' : 'Show Title Page'}
               </button>
               <button onClick={handleExportPDF} className="sidebar-btn secondary">Export PDF</button>
+              <button
+                onClick={async () => {
+                  if (confirm(`Delete "${currentDocument}"? This action cannot be undone.`)) {
+                    try {
+                      await screenplayService.deleteScreenplay(currentDocument);
+                      handleNewDocument(); // Reset to new document
+                      alert('Document deleted successfully');
+                    } catch (error) {
+                      console.error('Error deleting document:', error);
+                      alert('Failed to delete document. Please try again.');
+                    }
+                  }
+                }}
+                className="sidebar-btn"
+                style={{ backgroundColor: '#e74c3c', color: 'white' }}
+                disabled={currentDocument === 'Untitled Screenplay'}
+              >
+                Delete Document
+              </button>
             </div>
           </div>
 

@@ -8,9 +8,14 @@
     "dev:frontend": "vite",
     "dev:backend": "tsx server/index.ts",
     "build": "tsc -b && vite build",
-    "build:backend": "tsc server/index.ts --outDir dist-server",
+    "build:backend": "tsc --project tsconfig.server.json",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f app",
+    "docker:restart": "docker-compose restart app"
   },
   "dependencies": {
     "better-sqlite3": "^12.5.0",
@@ -41,6 +46,6 @@
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4"
+    "vite": "^7.3.0"
   }
 }

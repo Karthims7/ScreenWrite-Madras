@@ -8,6 +8,15 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+interface ScreenplayRow {
+  id: string;
+  title: string;
+  content: string;
+  title_page: string;
+  created_at: string;
+  updated_at: string;
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -78,10 +87,10 @@ app.get('/api/screenplays', (req, res) => {
   try {
     const screenplays = db.prepare(`
       SELECT * FROM screenplays ORDER BY updated_at DESC
-    `).all();
+    `).all() as ScreenplayRow[];
 
     // Parse JSON fields
-    const parsed = screenplays.map((s: any) => ({
+    const parsed = screenplays.map((s) => ({
       ...s,
       content: JSON.parse(s.content),
       title_page: JSON.parse(s.title_page)
@@ -98,7 +107,7 @@ app.get('/api/screenplays/:id', (req, res) => {
   try {
     const screenplay = db.prepare(`
       SELECT * FROM screenplays WHERE id = ?
-    `).get(req.params.id) as any;
+    `).get(req.params.id) as ScreenplayRow | undefined;
 
     if (!screenplay) {
       return res.status(404).json({ error: 'Screenplay not found' });
@@ -137,7 +146,7 @@ app.post('/api/screenplays', (req, res) => {
 
     const screenplay = db.prepare(`
       SELECT * FROM screenplays WHERE id = ?
-    `).get(id) as any;
+    `).get(id) as ScreenplayRow;
 
     screenplay.content = JSON.parse(screenplay.content);
     screenplay.title_page = JSON.parse(screenplay.title_page);
@@ -173,7 +182,7 @@ app.put('/api/screenplays/:id', (req, res) => {
 
     const screenplay = db.prepare(`
       SELECT * FROM screenplays WHERE id = ?
-    `).get(id) as any;
+    `).get(id) as ScreenplayRow;
 
     screenplay.content = JSON.parse(screenplay.content);
     screenplay.title_page = JSON.parse(screenplay.title_page);
@@ -200,13 +209,26 @@ app.delete('/api/screenplays/:id', (req, res) => {
   }
 });
 
+// Serve static files from the React app build directory
+app.use(express.static(path.join(__dirname, '../dist')));
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Catch all handler: send back React's index.html file for client-side routing
+app.use((req, res) => {
+  // Only serve index.html for non-API routes
+  if (!req.path.startsWith('/api/')) {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  } else {
+    res.status(404).json({ error: 'API endpoint not found' });
+  }
+});
+
 // Error handling
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => { // eslint-disable-line @typescript-eslint/no-unused-vars
   console.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });
